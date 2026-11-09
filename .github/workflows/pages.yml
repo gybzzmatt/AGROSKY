@@ -1,1 +1,50 @@
-.github/workflows/pages.yml
+# AgroSky Andina · publicar el sitio en GitHub Pages (gratis en repositorios públicos)
+# Funciona de dos formas, sin permisos especiales y sin escribir en el repositorio:
+#   - Si el repo todavía tiene AGROSKY.bundle, publica el sitio que viene dentro.
+#   - Si ya tiene la carpeta site/, publica esa carpeta.
+# Requisito único: Settings → Pages → Source: "GitHub Actions".
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar el sitio
+        run: |
+          mkdir _out
+          if [ -f AGROSKY.bundle ]; then
+            git clone --quiet AGROSKY.bundle _src
+            cp -r _src/site/. _out/
+          else
+            cp -r site/. _out/
+          fi
+          touch _out/.nojekyll
+          test -f _out/index.html
+          du -sh _out
+          ls _out _out/media/video
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _out
+      - id: deployment
+        uses: actions/deploy-pages@v4
